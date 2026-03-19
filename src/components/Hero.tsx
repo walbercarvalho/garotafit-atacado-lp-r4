@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Star, TrendingUp } from 'lucide-react';
 import { HERO_CONTENT } from '../constants/content';
+import { VSLPlayer } from './VSLPlayer';
 
 export function Hero() {
   return (
@@ -71,33 +72,32 @@ export function Hero() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="relative lg:h-[600px] flex items-center justify-center"
+            className="relative flex flex-col items-center justify-center"
           >
-            {/* Minimalist image wrapper */}
-            <div className="relative w-full aspect-[4/5] sm:max-w-[400px] lg:max-w-none lg:w-full h-full rounded-[2rem] overflow-hidden bg-secondary border border-accent">
-               <img 
-                 src="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
-                 alt="Modelo Garotafit" 
-                 className="w-full h-full object-cover opacity-90"
+            {/* VSL Player wrapper */}
+            <div className="relative w-full aspect-video sm:max-w-[500px] lg:max-w-none lg:w-full rounded-[2rem] overflow-hidden bg-secondary border border-accent">
+               <VSLPlayer
+                 videoUrl="https://www.youtube.com/watch?v=buXVAEcaSNE"
+                 duration="4 min"
+                 isActive={true}
                />
-               <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
-               
-               {/* Floating Badge */}
-               <motion.div 
-                 initial={{ y: 20, opacity: 0 }}
-                 animate={{ y: 0, opacity: 1 }}
-                 transition={{ delay: 0.8 }}
-                 className="absolute bottom-6 left-6 right-6 bg-background/80 backdrop-blur-xl border border-accent p-4 rounded-2xl flex items-center gap-4"
-               >
-                 <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center">
-                   <TrendingUp className="w-6 h-6 text-primary" />
-                 </div>
-                 <div>
-                   <p className="text-sm text-foreground/60 font-medium">Margem de Lucro</p>
-                   <p className="text-xl font-bold text-foreground">Até 150%</p>
-                 </div>
-               </motion.div>
             </div>
+
+            {/* Floating Badge */}
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.8 }}
+              className="bg-background/80 backdrop-blur-xl border border-accent p-4 rounded-2xl flex items-center gap-4 mt-4"
+            >
+              <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-foreground/60 font-medium">Margem de Lucro</p>
+                <p className="text-xl font-bold text-foreground">Até 150%</p>
+              </div>
+            </motion.div>
           </motion.div>
         </div>
       </div>
