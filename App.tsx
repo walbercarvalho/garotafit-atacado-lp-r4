@@ -1,37 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
-// --- Constants ---
-const REGISTRATION_LINK = "https://www.garotafit.com.br/new_account/wholesale/?source=landing_page";
-// Comentário: Substitua o link acima pelo link oficial caso mude.
-
-const FAQ_DATA = [
-  { q: "Qual o valor mínimo para fazer um pedido?", a: "O pedido mínimo é de R$1.000,00. Perfeito para você que quer começar a revender sem precisar de um grande investimento inicial." },
-  { q: "Quanto posso ter de retorno?", a: "O retorno sugerido é de até 100% sobre o investimento. Isso varia conforme o seu mix de produtos e a estratégia de venda aplicada na sua região." },
-  { q: "Quais as formas de pagamento disponíveis?", a: "Oferecemos diversas opções, incluindo parcelamento em até 6x sem juros no cartão de crédito, PIX e Boleto Bancário." },
-  { q: "Posso parcelar os pedidos para revenda?", a: "Sim, ofertamos parcelamento em até 6 parcelas sem juros no cartão de crédito." },
-  { q: "As peças são pronta entrega? Quando enviam?", a: "Sim, todas as peças do catálogo estão disponíveis para pronta entrega. O despacho é feito em até 24h úteis após a confirmação do pagamento (enviamos de SP para todo o Brasil)." },
-  { q: "Existe política de troca ou defeito?", a: "Sim, possuímos uma política clara de trocas por defeitos de fabricação. Valorizamos a transparência e a segurança das nossas revendedoras." },
-  { q: "Como acesso o catálogo completo e os valores?", a: "Por questões estratégicas, os valores de atacado são liberados exclusivamente após o cadastro de revendedora. Assim que concluir o cadastro, nosso time enviará o acesso via WhatsApp." }
-];
-
-const PRODUCTS = [
-  { id: 1, tag: "Mais vendidos", img: "https://cdn.dooca.store/161238/products/bjkyzlcctfl9zibuymqvhdacqw6yrmeapy9m_1200x1600.jpg?v=1763146665000" },
-  { id: 2, tag: "Conjunto Fitness", img: "https://cdn.dooca.store/161238/products/zzjyqyc0uzyai3q7v0ojbapv4x5epbi2uff6_1200x1600.jpg?v=1768598465" },
-  { id: 3, tag: "Macacão Fitness", img: "https://cdn.dooca.store/161238/products/dddblps2xmj6rcto7mqryy29linww88k15w6_1200x1600.jpg?v=1762899961" },
-  { id: 4, tag: "Blusinha Baby Look", img: "https://cdn.dooca.store/161238/products/3uwgc0o14zr7dwuwbzveghkdcsy4gqzqdjr8_1200x1600.jpg?v=1770315156" },
-  { id: 5, tag: "Conjunto Esportivo Fitness", img: "https://cdn.dooca.store/161238/products/jijqjues4qjiwy9vm9qed46gkdbaqtcdyhnj_1200x1600.jpg?v=1770313341" },
-  { id: 6, tag: "Calça Legging Flare", img: "https://cdn.dooca.store/161238/products/2jfx5raqmuyszscbamr5qygrxmk0dgcquwyt_1200x1600.jpg?v=1770308792" },
-  { id: 7, tag: "Macaquinho Fitness", img: "https://cdn.dooca.store/161238/products/641htpksdaqfifrdo0ywurvj9rbopdiumfov_1200x1600.jpg?v=1768599376&webp=0" },
-  { id: 8, tag: "Conjunto Fitness", img: "https://cdn.dooca.store/161238/products/pmhilqv8qf8t2vfuyt8r4emnd41bcloqwurb_1200x1600.jpg?v=1763147530000" }
-];
-
-const WHATSAPP_PRINTS = [
-  "https://lp.garotafitbrasil.com.br/wp-content/uploads/2025/07/PROVASOCIAL3-1-472x1024.jpg",
-  "https://lp.garotafitbrasil.com.br/wp-content/uploads/2025/07/PROVASOCIAL2-1-459x1024.jpg",
-  "https://lp.garotafitbrasil.com.br/wp-content/uploads/2025/07/PROVASOCIAL1-1-472x1024.jpg",
-  "https://lp.garotafitbrasil.com.br/wp-content/uploads/2025/07/PROVASOCIAL4-459x1024.jpg"
-];
+import { REGISTRATION_LINK, FAQ_DATA, PRODUCTS, WHATSAPP_PRINTS } from './src/constants/content';
 
 // --- Helper Components ---
 
@@ -42,14 +12,18 @@ const SectionSubtitle: React.FC<{ text: string }> = ({ text }) => (
   </div>
 );
 
-const AccordionItem: React.FC<{ question: string; answer: string }> = ({ question, answer }) => {
-  const [isOpen, setIsOpen] = useState(false);
+const AccordionItem: React.FC<{
+  question: string;
+  answer: string;
+  isOpen: boolean;
+  onClick: () => void;
+}> = ({ question, answer, isOpen, onClick }) => {
   const contentId = `accordion-content-${question.replace(/\s+/g, '-').toLowerCase()}`;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      setIsOpen(!isOpen);
+      onClick();
     }
   };
 
@@ -57,7 +31,7 @@ const AccordionItem: React.FC<{ question: string; answer: string }> = ({ questio
     <div className={`accordion-item ${isOpen ? 'active' : ''}`}>
       <div
         className="accordion-header"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={onClick}
         onKeyDown={handleKeyDown}
         role="button"
         tabIndex={0}
@@ -85,6 +59,80 @@ const AccordionItem: React.FC<{ question: string; answer: string }> = ({ questio
 // --- Main App ---
 
 export default function App() {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isPaused, setIsPaused] = useState(false);
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  const [selectedProductImage, setSelectedProductImage] = useState<string | null>(null);
+  const [isModalClosing, setIsModalClosing] = useState(false);
+
+  const closeModal = () => {
+    setIsModalClosing(true);
+    setTimeout(() => {
+      setSelectedProductImage(null);
+      setIsModalClosing(false);
+    }, 300); // tempo bate com a duração da animação (300ms)
+  };
+
+  const MULTIPLIER = 4;
+  const extendedPrints = Array(MULTIPLIER).fill(WHATSAPP_PRINTS).flat();
+
+  useEffect(() => {
+    // Scroll inicial para permitir rolagem livre para ambos os lados
+    if (scrollContainerRef.current) {
+      setTimeout(() => {
+        if (scrollContainerRef.current) {
+          const container = scrollContainerRef.current;
+          const setWidth = container.scrollWidth / MULTIPLIER;
+          container.scrollTo({ left: setWidth, behavior: 'auto' });
+        }
+      }, 150);
+    }
+  }, []);
+
+  const handleScroll = () => {
+    if (!scrollContainerRef.current) return;
+    const container = scrollContainerRef.current;
+    const setWidth = container.scrollWidth / MULTIPLIER;
+
+    // Se estiver no final das réplicas ou no início, dá um 'salto' invisível para manter o loop
+    if (container.scrollLeft >= setWidth * (MULTIPLIER - 1)) {
+      container.scrollTo({ left: container.scrollLeft - setWidth, behavior: 'auto' });
+    } else if (container.scrollLeft <= 0) {
+      container.scrollTo({ left: container.scrollLeft + setWidth, behavior: 'auto' });
+    }
+  };
+
+  const getItemScrollStep = () => {
+    if (!scrollContainerRef.current) return 300;
+    const item = scrollContainerRef.current.querySelector('.carousel-item') as HTMLElement;
+    const itemWidth = item ? item.offsetWidth : 300;
+    const gap = window.innerWidth >= 768 ? 32 : 16;
+    return itemWidth + gap;
+  };
+
+  useEffect(() => {
+    if (isPaused) return; // Pausa se o usuário interagir
+    const interval = setInterval(() => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollBy({ left: getItemScrollStep(), behavior: 'smooth' });
+      }
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, [isPaused]);
+
+  const scrollLeftBtn = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: -getItemScrollStep(), behavior: 'smooth' });
+    }
+  };
+
+  const scrollRightBtn = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: getItemScrollStep(), behavior: 'smooth' });
+    }
+  };
+
   return (
     <div className="antialiased">
       {/* Header Atualizado com Grid para Centralização */}
@@ -151,15 +199,15 @@ export default function App() {
               *Após o cadastro, você fala diretamente com nosso time no WhatsApp e libera seu acesso ao catálogo com preços exclusivos para atacado.
             </p>
           </div>
-          <div className="w-full lg:w-1/2 relative group cursor-pointer">
-            <div className="relative z-10 border-[15px] border-white shadow-2xl">
+          <div className="w-full lg:w-1/2 relative group cursor-pointer flex justify-center mt-8 lg:mt-0">
+            <div className="w-3/4 md:w-2/3 lg:w-3/4 relative z-10 border-[10px] lg:border-[15px] border-white shadow-2xl">
               <img
                 src="https://lp.garotafitbrasil.com.br/wp-content/uploads/2025/07/9-683x1024.jpg"
                 alt="Modelo vestindo conjunto fitness Garotafit - Moda fitness de alta qualidade para revenda"
                 className="w-full h-auto object-cover grayscale-0 group-hover:scale-105 transition-transform duration-700"
               />
             </div>
-            <div className="absolute top-10 -right-10 w-full h-full bg-[#FFB02E] -z-10 opacity-10"></div>
+            <div className="absolute top-10 -right-[-10%] md:-right-[-20%] w-3/4 md:w-2/3 lg:w-3/4 h-full bg-[#FFB02E] -z-10 opacity-10"></div>
           </div>
         </section>
 
@@ -232,10 +280,11 @@ export default function App() {
                 role="button"
                 tabIndex={0}
                 aria-label={`Ver produto: ${prod.tag}`}
+                onClick={() => setSelectedProductImage(prod.img)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    // Product click handler would go here
+                    setSelectedProductImage(prod.img);
                   }
                 }}
               >
@@ -388,17 +437,60 @@ export default function App() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {WHATSAPP_PRINTS.map((img, i) => (
-              <div key={i} className="border-[8px] border-[#FFB02E] rounded-[30px] md:rounded-[40px] overflow-hidden shadow-2xl transition-transform hover:scale-[1.02] cursor-pointer">
-                <img
-                  src={img}
-                  alt={`Depoimento real de revendedora Garotafit via WhatsApp - Conversa ${i + 1}`}
-                  className="w-full h-auto block"
-                  loading="lazy"
-                />
-              </div>
-            ))}
+          {/* Controles e Carrossel */}
+          <div
+            className="relative max-w-6xl mx-auto group"
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
+            onTouchStart={() => setIsPaused(true)}
+            onTouchEnd={() => setIsPaused(false)}
+          >
+
+            {/* Botão Voltar */}
+            <button
+              onClick={scrollLeftBtn}
+              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-12 z-10 bg-white/90 hover:bg-white text-black p-3 rounded-full shadow-lg border border-gray-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden md:block"
+              aria-label="Voltar carrossel"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+
+            {/* Container do Carrossel */}
+            <div
+              ref={scrollContainerRef}
+              onScroll={handleScroll}
+              className="flex gap-4 md:gap-8 overflow-x-auto snap-x snap-mandatory pt-4 pb-8 scrollbar-hide"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+              <style>{`.scrollbar-hide::-webkit-scrollbar { display: none; }`}</style>
+              {extendedPrints.map((img, i) => (
+                <div
+                  key={i}
+                  className="carousel-item w-[70vw] sm:w-[280px] md:w-[320px] lg:w-[350px] flex-shrink-0 snap-center border-[6px] md:border-[8px] border-[#FFB02E] rounded-[24px] md:rounded-[40px] overflow-hidden shadow-xl md:shadow-2xl transition-transform hover:scale-[1.02] cursor-pointer"
+                >
+                  <img
+                    src={img}
+                    alt={`Depoimento real de revendedora Garotafit via WhatsApp`}
+                    className="w-full h-auto block"
+                    loading="lazy"
+                    draggable={false}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Botão Avançar */}
+            <button
+              onClick={scrollRightBtn}
+              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-12 z-10 bg-white/90 hover:bg-white text-black p-3 rounded-full shadow-lg border border-gray-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden md:block"
+              aria-label="Avançar carrossel"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
           </div>
 
           <div className="mt-16 text-center">
@@ -422,7 +514,13 @@ export default function App() {
 
             <div className="space-y-4">
               {FAQ_DATA.map((item, i) => (
-                <AccordionItem key={i} question={item.q} answer={item.a} />
+                <AccordionItem
+                  key={i}
+                  question={item.q}
+                  answer={item.a}
+                  isOpen={openFaqIndex === i}
+                  onClick={() => setOpenFaqIndex(openFaqIndex === i ? null : i)}
+                />
               ))}
             </div>
 
@@ -498,6 +596,45 @@ export default function App() {
           <span>Desenvolvido por <a href="https://novamedia.com.br" className="hover:text-black transition-colors" aria-label="Visitar site da Novamedia" target="_blank" rel="noopener noreferrer">Novamedia</a>.</span>
         </div>
       </footer>
+
+      {/* Modal de Imagem do Produto */}
+      {(selectedProductImage || isModalClosing) && (
+        <div
+          className={`fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 cursor-pointer transition-opacity duration-300 ${isModalClosing ? 'opacity-0' : 'opacity-100 animate-fadeIn'}`}
+          onClick={closeModal}
+          role="dialog"
+          aria-modal="true"
+        >
+          <style>{`
+            @keyframes fadeIn {
+              from { opacity: 0; transform: scale(0.95); }
+              to { opacity: 1; transform: scale(1); }
+            }
+            .animate-fadeIn {
+              animation: fadeIn 0.3s ease-out forwards;
+            }
+          `}</style>
+          <div
+            className={`relative max-w-4xl w-full max-h-[90vh] flex items-center justify-center cursor-default transition-all duration-300 ${isModalClosing ? 'scale-95' : 'scale-100'}`}
+            onClick={(e) => e.stopPropagation()} // Evita que clique na imagem feche o modal
+          >
+            <button
+              onClick={closeModal}
+              className="absolute -top-10 right-0 md:-right-10 text-white hover:text-[#FFB02E] transition-colors p-2"
+              aria-label="Fechar"
+            >
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <img
+              src={selectedProductImage}
+              alt="Produto em destaque"
+              className="max-h-[85vh] h-auto w-auto object-contain rounded-lg shadow-2xl"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
