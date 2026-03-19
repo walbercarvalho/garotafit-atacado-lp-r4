@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 // --- Constants ---
 const REGISTRATION_LINK = "https://www.garotafit.com.br/new_account/wholesale/?source=landing_page";
@@ -82,6 +82,91 @@ const AccordionItem: React.FC<{ question: string; answer: string; isOpen: boolea
   );
 };
 
+// --- VSL Player ---
+function getYouTubeId(url: string): string | null {
+  const match = url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return match ? match[1] : null;
+}
+
+function VSLPlayer({ videoUrl, thumbnailUrl, duration, isActive = true }: {
+  videoUrl: string;
+  thumbnailUrl?: string;
+  duration?: string;
+  isActive?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const videoId = getYouTubeId(videoUrl);
+  const thumb = thumbnailUrl || (videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : '');
+
+  const close = useCallback(() => setIsOpen(false), []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close();
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [isOpen, close]);
+
+  if (!isActive) return null;
+
+  return (
+    <>
+      <div
+        className="relative w-full aspect-[9/16] cursor-pointer group"
+        onClick={() => setIsOpen(true)}
+        role="button"
+        tabIndex={0}
+        aria-label="Reproduzir vídeo"
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsOpen(true); }}
+      >
+        <img src={thumb} alt="Vídeo Garotafit" className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-20 h-20 rounded-full bg-[#FFB02E] flex items-center justify-center shadow-[0_0_40px_rgba(255,176,46,0.4)] hover:scale-110 transition-transform">
+            <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><polygon points="5,3 19,12 5,21" /></svg>
+          </div>
+        </div>
+        {duration && (
+          <span className="absolute bottom-4 right-4 bg-black/70 text-white text-xs font-medium px-3 py-1 rounded-full backdrop-blur-sm">
+            ⏱ {duration}
+          </span>
+        )}
+      </div>
+      <p className="text-sm text-gray-500 text-center mt-3 px-2">
+        ⏱ Assista e entenda como funciona a parceria Garotafit antes de se cadastrar.
+      </p>
+      {isOpen && videoId && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-sm animate-fadeIn"
+          onClick={close}
+          role="dialog"
+          aria-label="Player de vídeo"
+        >
+          <button
+            onClick={(e) => { e.stopPropagation(); close(); }}
+            className="absolute top-4 right-4 md:top-8 md:right-8 text-white bg-black/50 hover:bg-black/80 rounded-full w-10 h-10 flex items-center justify-center text-xl font-bold transition-colors z-10 cursor-pointer"
+            aria-label="Fechar vídeo"
+            autoFocus
+          >
+            ✕
+          </button>
+          <div className="w-[85vw] max-w-[400px] aspect-[9/16]" onClick={(e) => e.stopPropagation()}>
+            <iframe
+              src={`https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0`}
+              title="Vídeo Garotafit"
+              className="w-full h-full rounded-lg"
+              allow="autoplay; encrypted-media; fullscreen"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 // --- Main App ---
 
 export default function App() {
@@ -143,7 +228,7 @@ export default function App() {
 
       <main id="main-content" className="pt-[70px] md:pt-[90px]">
         {/* Section 1: Hero */}
-        <section className="bg-white px-6 md:px-12 lg:px-20 py-20 lg:py-32 flex flex-col lg:flex-row items-center gap-12 overflow-hidden">
+        <section className="bg-white px-6 md:px-12 lg:px-20 py-20 lg:py-32 flex flex-col lg:flex-row lg:items-start items-center gap-12 overflow-hidden">
           <div className="w-full lg:w-1/2 space-y-8">
             <span className="uppercase text-xs tracking-[0.2em] font-bold text-[#FFB02E] leading-none block mb-6">
               Para revendedoras que querem parar de competir por preço
@@ -187,17 +272,15 @@ export default function App() {
             </div>
           </div>
           <div className="w-full lg:w-1/2 flex justify-center relative">
-            <div className="w-full lg:w-[65%] relative group cursor-pointer">
-            <div className="relative z-10 border-[15px] border-white shadow-2xl">
-              <img
-                src="https://lp.garotafitbrasil.com.br/wp-content/uploads/2025/07/9-683x1024.jpg"
-                alt="Modelo vestindo conjunto fitness Garotafit - Moda fitness de alta qualidade para revenda"
-                className="w-full h-auto object-cover grayscale-0 group-hover:scale-105 transition-transform duration-700"
-                width="683"
-                height="1024"
-              />
-            </div>
-            <div className="absolute top-10 -right-10 w-full h-full bg-[#FFB02E] -z-10 opacity-10"></div>
+            <div className="w-[75%] sm:w-[60%] lg:w-[52%] relative">
+              <div className="relative z-10 rounded-2xl overflow-hidden shadow-2xl border border-gray-200">
+                <VSLPlayer
+                  videoUrl="https://www.youtube.com/shorts/7OMMpFZsQmM"
+                  duration="4 min"
+                  isActive={true}
+                />
+              </div>
+              <div className="absolute top-10 -right-10 w-full h-full bg-[#FFB02E] -z-10 opacity-10 rounded-2xl"></div>
             </div>
           </div>
         </section>
